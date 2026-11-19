@@ -1,0 +1,17 @@
+{
+  "name": "@tidepool/db",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "seed": "tsx --env-file=../../.env src/seed.ts",
+        "push": "set -a; . ../../.env; set +a; prisma db push --skip-generate",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+
+  "dependencies": { "@prisma/client": "^5.20.0", "@tidepool/core": "*" },
+  "devDependencies": { "prisma": "^5.20.0" }
+}

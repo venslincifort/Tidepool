@@ -1,0 +1,32 @@
+x-env: &env
+  DATABASE_URL: postgresql://tidepool:tidepool@db:5432/tidepool
+  REDIS_URL: redis://redis:6379
+  WEBHOOK_SECRET: whsec_local_dev_secret
+  PROCESSOR_URL: http://processor:4100
+  WEBHOOK_URL: http://api:4000/webhooks/processor
+
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: tidepool, POSTGRES_PASSWORD: tidepool, POSTGRES_DB: tidepool }
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+  api:
+    build: { context: ., args: { APP: api } }
+    command: sh -c "npm run push -w @tidepool/db && npm run seed -w @tidepool/db && npx tsx apps/api/src/index.ts"
+    environment: *env
+    depends_on: [db, redis]
+    ports: ["4000:4000"]
+  worker:
+    build: { context: ., args: { APP: worker } }
+    environment: *env
+    depends_on: [api, redis]
+  processor:
+    build: { context: ., args: { APP: processor } }
+    environment: *env
+    ports: ["4100:4100"]
+volumes:
+  pgdata:

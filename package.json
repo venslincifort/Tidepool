@@ -1,0 +1,20 @@
+{
+  "name": "tidepool",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n api,worker,processor,web -c blue,magenta,yellow,green \"npm run dev -w @tidepool/api\" \"npm run dev -w @tidepool/worker\" \"npm run dev -w @tidepool/processor\" \"npm run dev -w @tidepool/web\"",
+    "db:generate": "npm run generate -w @tidepool/db",
+    "db:push": "npm run push -w @tidepool/db",
+    "db:seed": "npm run seed -w @tidepool/db",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "concurrently": "^9.0.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id        String    @id @default(cuid())
+  name      String
+  apiKey    String    @unique
+  createdAt DateTime  @default(now())
+  payments  Payment[]
+}
+
+/// Ledger accounts. Platform accounts have fixed ids like "platform:fees".
+model Account {
+  id         String        @id
+  kind       String
+  merchantId String?
+  entries    LedgerEntry[]
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  merchantId      String
+  amountCents     Int
+  currency        String   @default("USD")
+  status          String
+  feeCents        Int?
+  processorRef    String?  @unique
+  cardFingerprint String
+  billingCountry  String
+  ipCountry       String
+  riskScore       Int      @default(0)
+  riskFlags       Json     @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  merchant        Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId, createdAt])
+  @@index([cardFingerprint, createdAt])
+}
+
+model LedgerTransaction {
+  id             String        @id @default(cuid())
+  type           String
+  idempotencyKey String        @unique
+  paymentId      String?
+  createdAt      DateTime      @default(now())
+  entries        LedgerEntry[]
+
+  @@index([paymentId])
+}
+
+/// Append-only. Never update or delete rows in this table.
+model LedgerEntry {
+  id            String            @id @default(cuid())
+  transactionId String
+  accountId     String
+  amountCents   Int
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
+  account       Account           @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model WebhookEvent {
+  id          String    @id
+  type        String
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  error       String?
+}
+
+model IdempotencyKey {
+  merchantId  String
+  key         String
+  requestHash String
+  status      Int
+  response    Json
+  createdAt   DateTime @default(now())
+
+  @@id([merchantId, key])
+}
+
+/// Internal reviewers. Separate from Merchant on purpose: a merchant key never works on ops endpoints.
+model OpsUser {
+  id        String     @id @default(cuid())
+  name      String
+  apiKey    String     @unique
+  createdAt DateTime   @default(now())
+  audits    AuditLog[]
+}
+
+/// Append-only record of every ops decision.
+model AuditLog {
+  id         String   @id @default(cuid())
+  opsUserId  String
+  action     String
+  paymentId  String
+  fromStatus String
+  toStatus   String
+  createdAt  DateTime @default(now())
+  opsUser    OpsUser  @relation(fields: [opsUserId], references: [id])
+
+  @@index([paymentId])
+}
